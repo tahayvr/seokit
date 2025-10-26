@@ -1,0 +1,67 @@
+{
+  "name": "@seokit/svelte",
+  "version": "0.0.1",
+  "description": "SvelteKit framework helper for SeoKit - SEO metadata and dynamic social media image generation",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./SeoKit.svelte": {
+      "types": "./dist/SeoKit.svelte.d.ts",
+      "svelte": "./dist/SeoKit.svelte"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "svelte": "./dist/index.js",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup && node scripts/post-build.js",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "keywords": [
+    "seokit",
+    "svelte",
+    "sveltekit",
+    "seo",
+    "og-image",
+    "open-graph",
+    "meta-tags",
+    "social-media"
+  ],
+  "author": "Taha YVR <taha@noiserandom.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tahayvr/seokit.git",
+    "directory": "packages/svelte"
+  },
+  "bugs": {
+    "url": "https://github.com/tahayvr/seokit/issues"
+  },
+  "homepage": "https://github.com/tahayvr/seokit#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@sveltejs/kit": "^2.0.0",
+    "svelte": "^5.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/kit": "^2.47.3",
+    "@types/node": "^24.9.1",
+    "svelte": "^5.42.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}

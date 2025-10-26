@@ -1,0 +1,21 @@
+{
+  "name": "seokit-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "SeoKit - Standalone SEO metadata and dynamic social media image generation tool",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules .turbo"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.8",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

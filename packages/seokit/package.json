@@ -1,0 +1,67 @@
+{
+  "name": "seokit",
+  "version": "0.0.1",
+  "description": "Dev tool for SEO metadata and dynamic social media image generation",
+  "type": "module",
+  "bin": {
+    "seokit": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "keywords": [
+    "seo",
+    "og-image",
+    "open-graph",
+    "social-media",
+    "meta-tags",
+    "cli",
+    "image-generation",
+    "sveltekit"
+  ],
+  "author": "Taha YVR <taha@noiserandom.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tahayvr/seokit.git",
+    "directory": "packages/seokit"
+  },
+  "bugs": {
+    "url": "https://github.com/tahayvr/seokit/issues"
+  },
+  "homepage": "https://github.com/tahayvr/seokit#readme",
+  "dependencies": {
+    "@hono/node-server": "^1.19.5",
+    "chokidar": "^4.0.3",
+    "commander": "^14.0.2",
+    "hono": "^4.10.3",
+    "html-react-parser": "^5.2.7",
+    "react": "^19.2.0",
+    "satori": "^0.18.3",
+    "sharp": "^0.34.4",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.23",
+    "@types/react": "^19.2.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}
