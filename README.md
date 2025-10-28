@@ -20,7 +20,7 @@ npx seokit init
 
 ### Configure
 
-Update `seokit.config.js` with your site details and add a font file.
+Update `seokit.config.js` with your site details.
 
 Choose from built-in templates:
 

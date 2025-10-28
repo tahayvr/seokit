@@ -69,17 +69,14 @@ const config = {
   template: "default",
 
   // Font configuration for Satori
+  // SeoKit includes Open Sans by default - no need to download fonts!
+  // To use custom fonts, replace with your own font files
   fonts: [
     {
-      name: "Inter",
-      path: "./fonts/Inter-Regular.ttf",
+      name: "Open Sans",
+      // This uses the bundled Open Sans font from SeoKit
+      path: "node_modules/seokit/fonts/OpenSans.ttf",
       weight: 400,
-      style: "normal",
-    },
-    {
-      name: "Inter",
-      path: "./fonts/Inter-Bold.ttf",
-      weight: 700,
       style: "normal",
     },
   ],
@@ -527,9 +524,11 @@ export async function initCommand(): Promise<void> {
     console.log("\n✨ SeoKit initialized successfully!\n");
     console.log("Next steps:");
     console.log("  1. Update seokit.config.js with your site details");
-    console.log("  2. Add font files to your project (referenced in config)");
-    console.log("  3. Start your dev server");
-    console.log("  4. Run: seokit dev");
+    console.log("  2. Start your dev server");
+    console.log("  3. Run: seokit dev");
+    console.log(
+      "\n💡 Tip: SeoKit includes Open Sans font by default - no font setup needed!"
+    );
 
     if (framework.type === "sveltekit") {
       console.log("\nFor SvelteKit, use the <SeoKit> component in your pages:");

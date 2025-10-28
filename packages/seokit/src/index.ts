@@ -58,3 +58,9 @@ export {
   getAvailableTemplates,
   getTemplateDescription,
 } from "./template-manager.js";
+export {
+  getBundledFontsDir,
+  getBundledFontPath,
+  getDefaultFontConfig,
+  isBundledFont,
+} from "./bundled-fonts.js";
