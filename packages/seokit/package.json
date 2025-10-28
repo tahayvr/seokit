@@ -1,6 +1,6 @@
 {
   "name": "seokit",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Dev tool for SEO metadata and dynamic social media image generation",
   "type": "module",
   "bin": {
@@ -24,7 +24,8 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "seo",
