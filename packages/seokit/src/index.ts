@@ -51,3 +51,10 @@ export {
   LogLevel,
   type LoggerConfig,
 } from "./logger.js";
+export {
+  getTemplatesDir,
+  getTemplateContent,
+  templateExists,
+  getAvailableTemplates,
+  getTemplateDescription,
+} from "./template-manager.js";

@@ -38,7 +38,26 @@ export interface SeoKitConfig {
   defaults: SeoKitDefaults;
   htmlSourceUrl: string;
   fonts: FontConfig[];
+  template?: string; // Template name to use (e.g., 'default', 'minimal', 'card', etc.)
   server?: ServerConfig;
   image?: ImageConfig;
   cache?: CacheConfig;
 }
+
+// Available built-in templates
+export type BuiltInTemplate =
+  | "default"
+  | "minimal"
+  | "minimal-dark"
+  | "card"
+  | "split"
+  | "retro";
+
+export const BUILT_IN_TEMPLATES: readonly BuiltInTemplate[] = [
+  "default",
+  "minimal",
+  "minimal-dark",
+  "card",
+  "split",
+  "retro",
+] as const;

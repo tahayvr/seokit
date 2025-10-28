@@ -22,6 +22,23 @@ npx seokit init
 
 Update `seokit.config.js` with your site details and add a font file.
 
+Choose from built-in templates:
+
+- `default` - Modern gradient design
+- `minimal` - Clean, minimalist light design
+- `minimal-dark` - Clean, minimalist dark design
+- `card` - Bold card-style with vibrant gradient
+- `split` - Split-screen layout with colorful panel
+- `retro` - Vintage with warm colors
+
+```js
+// seokit.config.js
+export default {
+  // ... other config
+  template: "minimal", // Change this to use different templates
+};
+```
+
 ### Use in Your Pages
 
 ```svelte

@@ -1,7 +1,4 @@
-// Default OgDefault.svelte template
-// This file is scaffolded by `seokit init` to templates/OgDefault.svelte
-
-export const ogDefaultTemplate = `<script lang="ts">
+<script lang="ts">
   export let title: string = 'Untitled';
   export let description: string = '';
   export let siteName: string = '';
@@ -153,4 +150,3 @@ export const ogDefaultTemplate = `<script lang="ts">
     border-radius: 2px;
   }
 </style>
-`;

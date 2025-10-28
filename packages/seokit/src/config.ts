@@ -39,6 +39,7 @@ const SeoKitConfigSchema = z.object({
   defaults: SeoKitDefaultsSchema,
   htmlSourceUrl: z.string().url("htmlSourceUrl must be a valid URL"),
   fonts: z.array(FontConfigSchema),
+  template: z.string().optional(),
   server: ServerConfigSchema.optional(),
   image: ImageConfigSchema.optional(),
 });

@@ -9,6 +9,11 @@ import { join } from "path";
 import { detectFramework, type FrameworkType } from "./framework-detector.js";
 import { execSync } from "child_process";
 import { handleCliError } from "./cli-error-formatter.js";
+import {
+  getTemplateContent,
+  getAvailableTemplates,
+  getTemplateDescription,
+} from "./template-manager.js";
 
 /**
  * Detects if the project uses TypeScript
@@ -57,6 +62,11 @@ const config = {
 
   // URL where the Template Endpoint is running (your dev server)
   htmlSourceUrl: "http://localhost:5173/api/seokit-html",
+
+  // Template to use for OG images (optional)
+  // Options: 'default', 'minimal', 'minimal-dark', 'card', 'split', 'retro'
+  // Or use a custom template by specifying the filename (e.g., 'MyCustomTemplate')
+  template: "default",
 
   // Font configuration for Satori
   fonts: [
@@ -220,16 +230,38 @@ function generateSvelteKitEndpoint(): string {
 import type { RequestHandler } from "./$types";
 import { render } from "svelte/server";
 
-// Import the user's template
-import OgTemplate from "$lib/seokit/templates/OgDefault.svelte";
+// Import all available templates
+import DefaultTemplate from "$lib/seokit/templates/default.svelte";
+import MinimalTemplate from "$lib/seokit/templates/minimal.svelte";
+import MinimalDarkTemplate from "$lib/seokit/templates/minimal-dark.svelte";
+import CardTemplate from "$lib/seokit/templates/card.svelte";
+import SplitTemplate from "$lib/seokit/templates/split.svelte";
+import RetroTemplate from "$lib/seokit/templates/retro.svelte";
+
+// Template map for dynamic selection
+const templates = {
+  default: DefaultTemplate,
+  minimal: MinimalTemplate,
+  "minimal-dark": MinimalDarkTemplate,
+  card: CardTemplate,
+  split: SplitTemplate,
+  retro: RetroTemplate,
+};
 
 export const GET: RequestHandler = async ({ url }) => {
   try {
     // Extract query parameters
     const params = Object.fromEntries(url.searchParams);
+    
+    // Get template name from query params or use 'default'
+    const templateName = params.template || "default";
+    delete params.template; // Remove template from props
+    
+    // Select the template
+    const Template = templates[templateName as keyof typeof templates] || templates.default;
 
     // Render template to HTML
-    const { html, css } = render(OgTemplate, {
+    const { html, css } = render(Template, {
       props: params,
     });
 
@@ -345,8 +377,8 @@ function installDependencies(
       packageManager === "npm"
         ? `npm install --save-dev ${packages.join(" ")}`
         : packageManager === "yarn"
-          ? `yarn add --dev ${packages.join(" ")}`
-          : `pnpm add -D ${packages.join(" ")}`;
+        ? `yarn add --dev ${packages.join(" ")}`
+        : `pnpm add -D ${packages.join(" ")}`;
 
     execSync(installCmd, { cwd: projectRoot, stdio: "inherit" });
     console.log("✓ Dependencies installed");
@@ -428,9 +460,16 @@ export async function initCommand(): Promise<void> {
     } else {
       let templateContent: string;
       if (framework.type === "sveltekit") {
-        templateContent = useTypeScript
-          ? generateSvelteKitTemplateTS()
-          : generateSvelteKitTemplateJS();
+        // Use the built-in 'default' template
+        try {
+          templateContent = getTemplateContent("default");
+          console.log("Using built-in 'default' template");
+        } catch (error) {
+          // Fallback to generated template if built-in not found
+          templateContent = useTypeScript
+            ? generateSvelteKitTemplateTS()
+            : generateSvelteKitTemplateJS();
+        }
       } else {
         templateContent = generateGenericTemplate();
       }
@@ -438,6 +477,26 @@ export async function initCommand(): Promise<void> {
       console.log(
         `✓ Created ${templatesRelativePath}/OgDefault.${templateExt}`
       );
+    }
+
+    // Copy all built-in templates for easy access
+    if (framework.type === "sveltekit") {
+      const availableTemplates = getAvailableTemplates();
+      console.log("\nCopying built-in templates...");
+      for (const template of availableTemplates) {
+        const destPath = join(templatesDir, `${template}.svelte`);
+        if (!existsSync(destPath)) {
+          try {
+            const content = getTemplateContent(template);
+            writeFileSync(destPath, content);
+            console.log(
+              `  ✓ ${template}.svelte - ${getTemplateDescription(template)}`
+            );
+          } catch (error) {
+            console.log(`  ⚠️  Failed to copy ${template}.svelte`);
+          }
+        }
+      }
     }
 
     // Create framework-specific endpoint
@@ -476,6 +535,17 @@ export async function initCommand(): Promise<void> {
       console.log("\nFor SvelteKit, use the <SeoKit> component in your pages:");
       console.log(
         '  <SeoKit title="Page Title" description="..." ogProps={{ title: "..." }} />'
+      );
+      console.log("\n📐 Available templates:");
+      console.log(
+        "  Change the 'template' field in seokit.config.js to use different designs:"
+      );
+      const templates = getAvailableTemplates();
+      templates.forEach((template) => {
+        console.log(`  - '${template}' - ${getTemplateDescription(template)}`);
+      });
+      console.log(
+        `\n  All templates are in ${templatesRelativePath}/ - customize them as needed!`
       );
     } else if (framework.type === "unknown") {
       console.log("\n⚠️  Manual setup required:");

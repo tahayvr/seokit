@@ -27,7 +27,8 @@
     "build": "tsup && node scripts/post-build.js",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "seokit",

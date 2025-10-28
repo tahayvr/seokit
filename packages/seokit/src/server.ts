@@ -147,6 +147,12 @@ export function createServer(config: SeoKitConfig) {
 
       // Step 1: Fetch HTML from Template Endpoint
       const templateStartTime = Date.now();
+
+      // Add template parameter if specified in config
+      if (config.template) {
+        params.set("template", config.template);
+      }
+
       const { html } = await fetchTemplateHtml(config.htmlSourceUrl, params);
       const templateDuration = Date.now() - templateStartTime;
       logger.logTemplateResponse(
