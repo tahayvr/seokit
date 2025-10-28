@@ -1,6 +1,6 @@
 {
   "name": "@seokit/svelte",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "SvelteKit framework helper for SeoKit - SEO metadata and dynamic social media image generation",
   "type": "module",
   "exports": {
