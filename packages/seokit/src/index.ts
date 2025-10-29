@@ -1,6 +1,6 @@
 // Main entry point for seokit package
 export * from "./types.js";
-export { loadConfig, validateFontPaths, validateConfig } from "./config.js";
+export { loadConfig, validateConfig } from "./config.js";
 export {
   ConfigWatcher,
   watchConfig,

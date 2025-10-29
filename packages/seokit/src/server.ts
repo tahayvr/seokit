@@ -224,6 +224,7 @@ export function createServer(
       logger.logImageGeneration("HTML to PNG", {
         pngSize: png.length,
         durationMs: renderDuration,
+        pageAcquisitionMs: pageAcquireDuration,
       });
 
       const totalDuration = Date.now() - startTime;

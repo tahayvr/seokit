@@ -1,7 +1,7 @@
 import chokidar, { type FSWatcher } from "chokidar";
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
-import { loadConfig, validateFontPaths } from "./config.js";
+import { loadConfig } from "./config.js";
 import type { SeoKitConfig } from "./types.js";
 
 export type ConfigChangeCallback = (
@@ -164,7 +164,6 @@ export class ConfigWatcher {
    */
   private async loadAndValidateConfig(): Promise<SeoKitConfig> {
     const config = await loadConfig(this.configPath);
-    validateFontPaths(config);
     return config;
   }
 

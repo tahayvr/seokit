@@ -110,9 +110,7 @@ export class PagePool {
       }
 
       this.isInitialized = true;
-      logger.info("Page pool initialized successfully", {
-        totalPages: this.pages.size,
-      });
+      logger.logPagePoolInitialized(this.pages.size);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error("Failed to initialize page pool", {
@@ -132,6 +130,8 @@ export class PagePool {
       throw new Error("Page pool is not initialized");
     }
 
+    const acquireStartTime = Date.now();
+
     // Try to get an available page immediately
     const pageId = this.availablePages.dequeue();
 
@@ -142,17 +142,15 @@ export class PagePool {
         pageInfo.lastUsed = Date.now();
         pageInfo.requestCount++;
 
-        logger.debug("Page acquired from pool", {
-          pageId,
-          requestCount: pageInfo.requestCount,
-        });
+        const waitTime = Date.now() - acquireStartTime;
+        logger.logPageAcquired(pageId, pageInfo.requestCount, waitTime);
 
         return pageInfo.page;
       }
     }
 
     // No pages available, queue the request with timeout
-    return this.queueRequest();
+    return this.queueRequest(acquireStartTime);
   }
 
   /**
@@ -183,7 +181,7 @@ export class PagePool {
       pageInfo.inUse = false;
       pageInfo.lastUsed = Date.now();
 
-      logger.debug("Page released back to pool", { pageId });
+      logger.logPageReleased(pageId);
 
       // Check if there are waiting requests
       const waitingRequest = this.waitingRequests.dequeue();
@@ -198,7 +196,7 @@ export class PagePool {
         pageInfo.inUse = true;
         pageInfo.requestCount++;
 
-        logger.debug("Page assigned to waiting request", { pageId });
+        logger.logPageAssignedToWaiting(pageId);
 
         waitingRequest.resolve(page);
       } else {
@@ -222,7 +220,7 @@ export class PagePool {
    * Drain the pool by closing all pages
    */
   async drain(): Promise<void> {
-    logger.info("Draining page pool", { totalPages: this.pages.size });
+    logger.logPagePoolDrained(this.pages.size);
 
     // Reject all waiting requests
     let waitingRequest = this.waitingRequests.dequeue();
@@ -276,10 +274,23 @@ export class PagePool {
   /**
    * Queue a request when pool is exhausted
    */
-  private queueRequest(): Promise<Page> {
+  private queueRequest(acquireStartTime: number): Promise<Page> {
     return new Promise<Page>((resolve, reject) => {
       const request: PoolRequest = {
-        resolve,
+        resolve: (page: Page) => {
+          // Calculate wait time when page is finally acquired
+          const waitTime = Date.now() - acquireStartTime;
+
+          // Find page ID for logging
+          for (const [id, info] of this.pages.entries()) {
+            if (info.page === page) {
+              logger.logPageAcquired(id, info.requestCount, waitTime);
+              break;
+            }
+          }
+
+          resolve(page);
+        },
         reject,
         timestamp: Date.now(),
       };
@@ -295,10 +306,10 @@ export class PagePool {
         );
         error.name = "PageAcquisitionTimeoutError";
 
-        logger.warn("Page acquisition timeout", {
-          maxWaitTime: this.config.maxWaitTime,
-          waitingRequests: this.waitingRequests.size,
-        });
+        logger.logPageAcquisitionTimeout(
+          this.config.maxWaitTime,
+          this.waitingRequests.size
+        );
 
         reject(error);
       }, this.config.maxWaitTime);

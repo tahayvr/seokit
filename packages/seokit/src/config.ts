@@ -161,9 +161,9 @@ export async function loadConfig(configPath?: string): Promise<SeoKitConfig> {
 
 /**
  * Validate complete configuration including file system checks
- * @param config Configuration to validate
+ * @param _config Configuration to validate
  */
-export function validateConfig(config: SeoKitConfig): void {
+export function validateConfig(_config: SeoKitConfig): void {
   // Additional validation can be added here
   // For example: check if URLs are reachable, validate port ranges, etc.
 }

@@ -92,6 +92,12 @@ class Logger {
   }
 
   logImageGeneration(stage: string, details: Record<string, unknown>): void {
+    // Add memory usage to performance logs if not already present
+    if (!details.memoryUsageMB) {
+      const memoryUsageMB = process.memoryUsage().heapUsed / 1024 / 1024;
+      details.memoryUsageMB = Math.round(memoryUsageMB * 100) / 100; // Round to 2 decimals
+    }
+
     this.info(`Image generation: ${stage}`, details);
   }
 
@@ -112,6 +118,85 @@ class Logger {
       durationMs: duration,
       ...details,
     });
+  }
+
+  // Browser Manager logging methods
+  logBrowserStart(version: string): void {
+    this.info(`Browser started`, { version });
+  }
+
+  logBrowserCrash(error: string, restartAttempt?: number): void {
+    this.error(`Browser crashed`, {
+      error,
+      restartAttempt,
+    });
+  }
+
+  logBrowserRestart(
+    attempt: number,
+    maxAttempts: number,
+    backoffMs: number
+  ): void {
+    this.info(`Browser restarting`, {
+      attempt,
+      maxAttempts,
+      backoffMs,
+    });
+  }
+
+  logBrowserRestartSuccess(): void {
+    this.info(`Browser restarted successfully after crash`);
+  }
+
+  logBrowserMemoryThreshold(memoryUsageMB: number, limitMB: number): void {
+    this.warn(`Memory threshold exceeded, restarting browser`, {
+      memoryUsageMB,
+      limitMB,
+    });
+  }
+
+  // Page Pool logging methods
+  logPageAcquired(
+    pageId: string,
+    requestCount: number,
+    waitTimeMs?: number
+  ): void {
+    const meta: Record<string, unknown> = {
+      pageId,
+      requestCount,
+    };
+
+    if (waitTimeMs !== undefined) {
+      meta.waitTimeMs = waitTimeMs;
+    }
+
+    this.debug(`Page acquired from pool`, meta);
+  }
+
+  logPageReleased(pageId: string): void {
+    this.debug(`Page released back to pool`, { pageId });
+  }
+
+  logPageAssignedToWaiting(pageId: string): void {
+    this.debug(`Page assigned to waiting request`, { pageId });
+  }
+
+  logPageAcquisitionTimeout(
+    maxWaitTime: number,
+    waitingRequests: number
+  ): void {
+    this.warn(`Page acquisition timeout`, {
+      maxWaitTime,
+      waitingRequests,
+    });
+  }
+
+  logPagePoolInitialized(totalPages: number): void {
+    this.info(`Page pool initialized successfully`, { totalPages });
+  }
+
+  logPagePoolDrained(totalPages: number): void {
+    this.info(`Page pool drained`, { totalPages });
   }
 }
 

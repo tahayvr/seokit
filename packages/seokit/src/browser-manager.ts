@@ -72,7 +72,7 @@ export class BrowserManager {
 
       // Get browser version
       const version = await browser.version();
-      logger.info("Browser started successfully", { version });
+      logger.logBrowserStart(version);
 
       // Set up crash detection
       this.setupCrashDetection(browser);
@@ -214,12 +214,13 @@ export class BrowserManager {
    */
   private setupCrashDetection(browser: Browser): void {
     browser.on("disconnected", async () => {
-      logger.error("Browser disconnected unexpectedly");
+      const error = new Error("Browser disconnected");
+      logger.logBrowserCrash(error.message);
 
       // Update state to crashed
       this.state = {
         status: "crashed",
-        error: new Error("Browser disconnected"),
+        error,
         crashTime: Date.now(),
       };
 
@@ -243,11 +244,11 @@ export class BrowserManager {
     const backoffMs =
       this.restartBackoffMs * Math.pow(2, this.restartAttempts - 1);
 
-    logger.info("Attempting browser restart", {
-      attempt: this.restartAttempts,
-      maxAttempts: this.maxRestartAttempts,
-      backoffMs,
-    });
+    logger.logBrowserRestart(
+      this.restartAttempts,
+      this.maxRestartAttempts,
+      backoffMs
+    );
 
     this.state = { status: "restarting" };
 
@@ -256,7 +257,7 @@ export class BrowserManager {
 
     try {
       await this.start();
-      logger.info("Browser restarted successfully after crash");
+      logger.logBrowserRestartSuccess();
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       logger.error("Failed to restart browser", {
@@ -286,10 +287,10 @@ export class BrowserManager {
       const memoryUsageMB = process.memoryUsage().heapUsed / 1024 / 1024;
 
       if (memoryUsageMB > this.config.memoryLimit) {
-        logger.warn("Memory threshold exceeded, restarting browser", {
+        logger.logBrowserMemoryThreshold(
           memoryUsageMB,
-          limitMB: this.config.memoryLimit,
-        });
+          this.config.memoryLimit
+        );
 
         try {
           await this.restart();
