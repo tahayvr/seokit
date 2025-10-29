@@ -58,15 +58,11 @@
     "chokidar": "^4.0.3",
     "commander": "^14.0.2",
     "hono": "^4.10.3",
-    "html-react-parser": "^5.2.7",
-    "react": "^19.2.0",
-    "satori": "^0.18.3",
-    "sharp": "^0.34.4",
+    "puppeteer": "^24.27.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "^20.19.23",
-    "@types/react": "^19.2.2",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3"
   }
