@@ -17,14 +17,6 @@ export {
   type TemplateEndpointResponse,
 } from "./template-fetcher.js";
 export {
-  loadFonts,
-  clearFontCache,
-  getFontCacheSize,
-  type SatoriFont,
-} from "./font-loader.js";
-export { htmlToSvg } from "./html-to-svg.js";
-export { svgToPng } from "./svg-to-png.js";
-export {
   SeoKitError,
   ErrorCode,
   isSeoKitError,
@@ -36,9 +28,6 @@ export {
   createTemplateTimeoutError,
   createTemplateRenderFailedError,
   createTemplateInvalidResponseError,
-  createSatoriConversionError,
-  createSharpConversionError,
-  createFontLoadError,
   createPortInUseError,
   createPortAccessDeniedError,
   createImageGenerationError,
@@ -58,9 +47,3 @@ export {
   getAvailableTemplates,
   getTemplateDescription,
 } from "./template-manager.js";
-export {
-  getBundledFontsDir,
-  getBundledFontPath,
-  getDefaultFontConfig,
-  isBundledFont,
-} from "./bundled-fonts.js";

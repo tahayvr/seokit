@@ -2,7 +2,6 @@ import chokidar, { type FSWatcher } from "chokidar";
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { loadConfig, validateFontPaths } from "./config.js";
-import { clearFontCache } from "./font-loader.js";
 import type { SeoKitConfig } from "./types.js";
 
 export type ConfigChangeCallback = (
@@ -132,9 +131,6 @@ export class ConfigWatcher {
 
         // Clear the module cache to force reload
         this.clearModuleCache();
-
-        // Clear font cache to reload fonts with new config
-        clearFontCache();
 
         // Load and validate new configuration
         const newConfig = await this.loadAndValidateConfig();
