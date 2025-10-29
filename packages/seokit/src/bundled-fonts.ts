@@ -33,7 +33,7 @@ export function getDefaultFontConfig(): FontConfig[] {
   return [
     {
       name: "Open Sans",
-      path: getBundledFontPath("OpenSans.ttf"),
+      path: getBundledFontPath("OpenSans-Regular.ttf"),
       weight: 400,
       style: "normal",
     },

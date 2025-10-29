@@ -15,14 +15,16 @@ import { getTemplateContent } from "./template-manager.js";
  * Generates the seokit.config.js template (works for both TS and JS projects)
  */
 function generateConfigTemplateJS(): string {
-  return `/** @type {import('seokit').SeoKitConfig} */
+  return `import { getBundledFontPath } from "seokit";
+
+/** @type {import('seokit').SeoKitConfig} */
 const config = {
   // Base URL for your production site
   baseUrl: "https://example.com",
 
   // Site-wide defaults
   defaults: {
-    siteName: "My Site",
+    siteName: "test si",
     twitterHandle: "@mysite",
     locale: "en_US",
   },
@@ -32,14 +34,14 @@ const config = {
 
   // Template to use for OG images
   // Options: 'custom' (your editable template), 'default', 'minimal', 'minimal-dark', 'card', 'split', 'retro'
-  template: "default",
+  template: "custom",
 
   // Font configuration
-  // To use custom fonts, replace with your own font files
+  // Using bundled Open Sans font - to use custom fonts, replace with your own font files
   fonts: [
     {
       name: "Open Sans",
-      path: "node_modules/seokit/fonts/OpenSans.ttf",
+      path: getBundledFontPath("OpenSans-Regular.ttf"),
       weight: 400,
       style: "normal",
     },

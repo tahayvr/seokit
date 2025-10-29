@@ -27,7 +27,10 @@ export interface SatoriFont {
  * @returns ArrayBuffer containing font data
  */
 async function loadFontFile(fontPath: string): Promise<ArrayBuffer> {
-  const resolvedPath = resolve(process.cwd(), fontPath);
+  // If path is already absolute, use it as-is, otherwise resolve from cwd
+  const resolvedPath = fontPath.startsWith("/")
+    ? fontPath
+    : resolve(process.cwd(), fontPath);
 
   // Check if file exists
   if (!existsSync(resolvedPath)) {
