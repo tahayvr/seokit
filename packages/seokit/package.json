@@ -1,6 +1,6 @@
 {
   "name": "seokit",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Dev tool for SEO metadata and dynamic social media image generation",
   "type": "module",
   "bin": {
