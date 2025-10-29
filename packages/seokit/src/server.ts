@@ -3,8 +3,12 @@ import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
 import type { SeoKitConfig } from "./types.js";
 import { fetchTemplateHtml } from "./template-fetcher.js";
-import { htmlToSvg } from "./html-to-svg.js";
-import { svgToPng } from "./svg-to-png.js";
+import { htmlToPng } from "./html-to-png.js";
+import {
+  createBrowserManager,
+  type BrowserManager,
+} from "./browser-manager.js";
+import { createPagePool, type PagePool } from "./page-pool.js";
 import {
   isSeoKitError,
   toSeoKitError,
@@ -38,7 +42,11 @@ function getCacheHeaders(config: SeoKitConfig): string {
 /**
  * Create and configure the Image Engine Hono server
  */
-export function createServer(config: SeoKitConfig) {
+export function createServer(
+  config: SeoKitConfig,
+  browserManager: BrowserManager,
+  pagePool: PagePool
+) {
   const app = new Hono();
 
   // Configure CORS for development
@@ -74,7 +82,31 @@ export function createServer(config: SeoKitConfig) {
       });
     }
 
-    // Check 2: Template Endpoint reachability
+    // Check 2: Browser status
+    const browserStats = await browserManager.getStats();
+    if (browserStats.status === "running") {
+      checks.browser = { status: "ok" };
+    } else {
+      checks.browser = {
+        status: "error",
+        message: `Browser is ${browserStats.status}`,
+      };
+      overallStatus = "degraded";
+    }
+
+    // Check 3: Page pool status
+    const poolStats = pagePool.getStats();
+    if (poolStats.total > 0) {
+      checks.pagePool = { status: "ok" };
+    } else {
+      checks.pagePool = {
+        status: "error",
+        message: "No pages available in pool",
+      };
+      overallStatus = "degraded";
+    }
+
+    // Check 4: Template Endpoint reachability
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
@@ -118,6 +150,18 @@ export function createServer(config: SeoKitConfig) {
         status: overallStatus,
         timestamp: new Date().toISOString(),
         checks,
+        browser: {
+          status: browserStats.status,
+          version: browserStats.version,
+          uptime: browserStats.uptime,
+          memoryUsage: browserStats.memoryUsage,
+        },
+        pagePool: {
+          total: poolStats.total,
+          available: poolStats.available,
+          inUse: poolStats.inUse,
+          waiting: poolStats.waitingRequests,
+        },
         config: {
           htmlSourceUrl: config.htmlSourceUrl,
           imageSize: `${config.image?.width || 1200}x${
@@ -135,6 +179,7 @@ export function createServer(config: SeoKitConfig) {
   app.get("/og.png", async (c) => {
     const logger = getLogger();
     const startTime = Date.now();
+    let page = null;
 
     try {
       // Extract query parameters from the request URL
@@ -160,22 +205,25 @@ export function createServer(config: SeoKitConfig) {
         templateDuration
       );
 
-      // Step 2: Convert HTML to SVG using Satori
-      const satoriStartTime = Date.now();
-      const svg = await htmlToSvg(html, config);
-      const satoriDuration = Date.now() - satoriStartTime;
-      logger.logImageGeneration("HTML to SVG", {
-        svgLength: svg.length,
-        durationMs: satoriDuration,
+      // Step 2: Acquire page from pool
+      const pageAcquireStartTime = Date.now();
+      page = await pagePool.acquire();
+      const pageAcquireDuration = Date.now() - pageAcquireStartTime;
+      logger.debug("Page acquired from pool", {
+        durationMs: pageAcquireDuration,
       });
 
-      // Step 3: Convert SVG to PNG using Sharp
-      const sharpStartTime = Date.now();
-      const png = await svgToPng(svg);
-      const sharpDuration = Date.now() - sharpStartTime;
-      logger.logImageGeneration("SVG to PNG", {
+      // Step 3: Render HTML to PNG using Puppeteer
+      const renderStartTime = Date.now();
+      const png = await htmlToPng(html, page, {
+        width: config.image?.width || 1200,
+        height: config.image?.height || 630,
+        timeout: config.puppeteer?.timeout || 10000,
+      });
+      const renderDuration = Date.now() - renderStartTime;
+      logger.logImageGeneration("HTML to PNG", {
         pngSize: png.length,
-        durationMs: sharpDuration,
+        durationMs: renderDuration,
       });
 
       const totalDuration = Date.now() - startTime;
@@ -212,8 +260,14 @@ export function createServer(config: SeoKitConfig) {
           message: seoKitError.message,
           ...(seoKitError.context && { context: seoKitError.context }),
         },
-        seoKitError.statusCode as 500 | 502 | 504
+        seoKitError.statusCode as 500 | 502 | 503 | 504
       );
+    } finally {
+      // Always release page back to pool
+      if (page) {
+        await pagePool.release(page);
+        logger.debug("Page released back to pool");
+      }
     }
   });
 
@@ -270,7 +324,29 @@ export function createServer(config: SeoKitConfig) {
 export async function startServer(
   config: SeoKitConfig
 ): Promise<ServerInstance> {
-  const app = createServer(config);
+  const logger = getLogger();
+
+  // Initialize BrowserManager
+  logger.info("Initializing browser manager...");
+  const browserManager = createBrowserManager(config.puppeteer);
+  await browserManager.start();
+
+  // Initialize PagePool
+  logger.info("Initializing page pool...");
+  const pagePool = createPagePool({
+    size: config.puppeteer?.poolSize || 2,
+    timeout: config.puppeteer?.timeout || 10000,
+    maxWaitTime: 30000,
+  });
+
+  const browser = browserManager.getBrowser();
+  if (!browser) {
+    throw new Error("Failed to get browser instance after starting");
+  }
+
+  await pagePool.initialize(browser);
+
+  const app = createServer(config, browserManager, pagePool);
   const port = config.server?.port || 7357;
 
   return new Promise((resolve, reject) => {
@@ -297,12 +373,24 @@ export async function startServer(
           const shutdown = async () => {
             console.log("\n🛑 Shutting down Image Engine...");
             try {
+              // Step 1: Stop accepting new requests
               await new Promise<void>((resolveClose) => {
                 server.close(() => {
                   console.log("✅ Server closed successfully");
                   resolveClose();
                 });
               });
+
+              // Step 2: Drain page pool
+              console.log("🔄 Draining page pool...");
+              await pagePool.drain();
+              console.log("✅ Page pool drained");
+
+              // Step 3: Stop browser
+              console.log("🔄 Stopping browser...");
+              await browserManager.stop();
+              console.log("✅ Browser stopped");
+
               process.exit(0);
             } catch (error) {
               console.error("Error during shutdown:", error);
@@ -316,8 +404,11 @@ export async function startServer(
 
           resolve({
             stop: async () => {
-              return new Promise<void>((resolveStop) => {
-                server.close(() => {
+              return new Promise<void>(async (resolveStop) => {
+                // Graceful shutdown sequence
+                server.close(async () => {
+                  await pagePool.drain();
+                  await browserManager.stop();
                   resolveStop();
                 });
               });
