@@ -29,6 +29,19 @@ export enum ErrorCode {
   PORT_ACCESS_DENIED = "PORT_ACCESS_DENIED",
   SERVER_START_FAILED = "SERVER_START_FAILED",
 
+  // Browser errors
+  BROWSER_LAUNCH_ERROR = "BROWSER_LAUNCH_ERROR",
+  BROWSER_CRASHED = "BROWSER_CRASHED",
+  BROWSER_TIMEOUT = "BROWSER_TIMEOUT",
+
+  // Page pool errors
+  PAGE_POOL_EXHAUSTED = "PAGE_POOL_EXHAUSTED",
+  PAGE_ACQUISITION_TIMEOUT = "PAGE_ACQUISITION_TIMEOUT",
+
+  // Rendering errors
+  RENDER_ERROR = "RENDER_ERROR",
+  RESOURCE_LOAD_ERROR = "RESOURCE_LOAD_ERROR",
+
   // Generic errors
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
 }
@@ -255,6 +268,103 @@ export function createImageGenerationError(originalError: Error): SeoKitError {
     ErrorCode.IMAGE_GENERATION_FAILED,
     500,
     { originalError: originalError.message }
+  );
+}
+
+export function createBrowserLaunchError(originalError: Error): SeoKitError {
+  return new SeoKitError(
+    `Failed to launch browser\n\n` +
+      `Error: ${originalError.message}\n\n` +
+      `Troubleshooting:\n` +
+      `  1. Make sure Chromium dependencies are installed\n` +
+      `  2. Check if running in a Docker container (may need --no-sandbox)\n` +
+      `  3. Verify sufficient memory is available\n` +
+      `  4. Check system logs for more details`,
+    ErrorCode.BROWSER_LAUNCH_ERROR,
+    500,
+    { originalError: originalError.message }
+  );
+}
+
+export function createBrowserCrashedError(originalError?: Error): SeoKitError {
+  return new SeoKitError(
+    `Browser crashed unexpectedly\n\n` +
+      `${originalError ? `Error: ${originalError.message}\n\n` : ""}` +
+      `The browser will attempt to restart automatically.`,
+    ErrorCode.BROWSER_CRASHED,
+    503,
+    { originalError: originalError?.message }
+  );
+}
+
+export function createBrowserTimeoutError(timeoutMs: number): SeoKitError {
+  return new SeoKitError(
+    `Browser operation timed out after ${timeoutMs / 1000} seconds\n\n` +
+      `The browser may be unresponsive or the operation is taking too long.\n` +
+      `Consider increasing the timeout in your configuration.`,
+    ErrorCode.BROWSER_TIMEOUT,
+    504,
+    { timeoutMs }
+  );
+}
+
+export function createPagePoolExhaustedError(
+  poolSize: number,
+  waitingRequests: number
+): SeoKitError {
+  return new SeoKitError(
+    `Page pool exhausted\n\n` +
+      `All ${poolSize} pages are currently in use with ${waitingRequests} requests waiting.\n\n` +
+      `Consider:\n` +
+      `  1. Increasing the pool size in your configuration\n` +
+      `  2. Optimizing template rendering performance\n` +
+      `  3. Implementing request throttling`,
+    ErrorCode.PAGE_POOL_EXHAUSTED,
+    503,
+    { poolSize, waitingRequests }
+  );
+}
+
+export function createPageAcquisitionTimeoutError(
+  maxWaitTime: number
+): SeoKitError {
+  return new SeoKitError(
+    `Page acquisition timed out after ${maxWaitTime / 1000} seconds\n\n` +
+      `No pages became available within the timeout period.\n` +
+      `The page pool may be exhausted or pages are taking too long to render.`,
+    ErrorCode.PAGE_ACQUISITION_TIMEOUT,
+    504,
+    { maxWaitTime }
+  );
+}
+
+export function createRenderError(
+  message: string,
+  consoleErrors?: string[]
+): SeoKitError {
+  const errorList = consoleErrors?.length
+    ? `\n\nConsole errors:\n${consoleErrors.map((e) => `  - ${e}`).join("\n")}`
+    : "";
+
+  return new SeoKitError(
+    `Render error: ${message}${errorList}`,
+    ErrorCode.RENDER_ERROR,
+    500,
+    { consoleErrors }
+  );
+}
+
+export function createResourceLoadError(
+  failedResources: string[]
+): SeoKitError {
+  const resourceList = failedResources.map((url) => `  - ${url}`).join("\n");
+
+  return new SeoKitError(
+    `Failed to load resources:\n\n${resourceList}\n\n` +
+      `Make sure all images and resources in your template are accessible.`,
+    ErrorCode.RESOURCE_LOAD_ERROR,
+    500,
+    { failedResources }
   );
 }
 
