@@ -1,6 +1,6 @@
 {
   "name": "seokit",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Dev tool for SEO metadata and dynamic social media image generation",
   "type": "module",
   "bin": {
@@ -10,6 +10,9 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./templates/*.svelte": {
+      "svelte": "./templates/*.svelte"
     },
     "./package.json": "./package.json"
   },

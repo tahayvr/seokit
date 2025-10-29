@@ -9,11 +9,7 @@ import { join } from "path";
 import { detectFramework, type FrameworkType } from "./framework-detector.js";
 import { execSync } from "child_process";
 import { handleCliError } from "./cli-error-formatter.js";
-import {
-  getTemplateContent,
-  getAvailableTemplates,
-  getTemplateDescription,
-} from "./template-manager.js";
+import { getTemplateContent } from "./template-manager.js";
 
 /**
  * Generates the seokit.config.js template (works for both TS and JS projects)
@@ -34,31 +30,28 @@ const config = {
   // URL where the Template Endpoint is running (your dev server)
   htmlSourceUrl: "http://localhost:5173/api/seokit-html",
 
-  // Template to use for OG images (optional)
-  // Options: 'default', 'minimal', 'minimal-dark', 'card', 'split', 'retro'
-  // Or use a custom template by specifying the filename (e.g., 'MyCustomTemplate')
+  // Template to use for OG images
+  // Options: 'custom' (your editable template), 'default', 'minimal', 'minimal-dark', 'card', 'split', 'retro'
   template: "default",
 
-  // Font configuration for Satori
-  // SeoKit includes Open Sans by default - no need to download fonts!
+  // Font configuration
   // To use custom fonts, replace with your own font files
   fonts: [
     {
       name: "Open Sans",
-      // This uses the bundled Open Sans font from SeoKit
       path: "node_modules/seokit/fonts/OpenSans.ttf",
       weight: 400,
       style: "normal",
     },
   ],
 
-  // Image Engine server configuration (optional)
+  // Image Engine server configuration
   server: {
     port: 7357,
     host: "localhost",
   },
 
-  // Image generation options (optional)
+  // Image generation options
   image: {
     width: 1200,
     height: 630,
@@ -78,16 +71,20 @@ function generateSvelteKitEndpoint(): string {
 import type { RequestHandler } from "./$types";
 import { render } from "svelte/server";
 
-// Import all available templates
-import DefaultTemplate from "$lib/seokit/templates/default.svelte";
-import MinimalTemplate from "$lib/seokit/templates/minimal.svelte";
-import MinimalDarkTemplate from "$lib/seokit/templates/minimal-dark.svelte";
-import CardTemplate from "$lib/seokit/templates/card.svelte";
-import SplitTemplate from "$lib/seokit/templates/split.svelte";
-import RetroTemplate from "$lib/seokit/templates/retro.svelte";
+// Import your customizable template
+import CustomTemplate from "$lib/seokit/templates/custom.svelte";
+
+// Import built-in templates from seokit package
+import DefaultTemplate from "seokit/templates/default.svelte";
+import MinimalTemplate from "seokit/templates/minimal.svelte";
+import MinimalDarkTemplate from "seokit/templates/minimal-dark.svelte";
+import CardTemplate from "seokit/templates/card.svelte";
+import SplitTemplate from "seokit/templates/split.svelte";
+import RetroTemplate from "seokit/templates/retro.svelte";
 
 // Template map for dynamic selection
 const templates = {
+  custom: CustomTemplate,
   default: DefaultTemplate,
   minimal: MinimalTemplate,
   "minimal-dark": MinimalDarkTemplate,
@@ -180,13 +177,9 @@ function updateGitignore(projectRoot: string): void {
     const content = readFileSync(gitignorePath, "utf-8");
     if (!content.includes(entry)) {
       appendFileSync(gitignorePath, `\n${entry}\n`);
-      console.log("✓ Updated .gitignore");
-    } else {
-      console.log("✓ .gitignore already contains seokit-assets entry");
     }
   } else {
     writeFileSync(gitignorePath, `${entry}\n`);
-    console.log("✓ Created .gitignore");
   }
 }
 
@@ -213,12 +206,9 @@ function installDependencies(
   const packageManager = detectPackageManager(projectRoot);
   const packages = ["seokit"];
 
-  // Add framework-specific helper
   if (frameworkType === "sveltekit") {
     packages.push("@seokit/svelte");
   }
-
-  console.log(`\nInstalling dependencies with ${packageManager}...`);
 
   try {
     const installCmd =
@@ -229,14 +219,11 @@ function installDependencies(
         : `pnpm add -D ${packages.join(" ")}`;
 
     execSync(installCmd, { cwd: projectRoot, stdio: "inherit" });
-    console.log("✓ Dependencies installed");
   } catch (error) {
-    console.error("✗ Failed to install dependencies");
-    console.error("  Please run manually:");
     console.error(
-      `  ${packageManager} ${
+      `\nFailed to install. Run manually: ${packageManager} ${
         packageManager === "npm" ? "install --save-dev" : "add -D"
-      } ${packages.join(" ")}`
+      } ${packages.join(" ")}\n`
     );
   }
 }
@@ -247,109 +234,48 @@ function installDependencies(
 export async function initCommand(): Promise<void> {
   try {
     const projectRoot = process.cwd();
-
-    console.log("🚀 Initializing SeoKit...\n");
-
-    // Detect framework
     const framework = detectFramework(projectRoot);
-    console.log(`Detected framework: ${framework.name}`);
 
-    if (framework.type === "unknown") {
-      console.log(
-        "⚠️  No supported framework detected. Creating generic template.\n"
-      );
-    }
-
-    // Always create .js config (works for both TS and JS projects with JSDoc)
+    // Create config file
     const configPath = join(projectRoot, "seokit.config.js");
     const tsConfigPath = join(projectRoot, "seokit.config.ts");
 
-    // Check if config already exists (either .js or .ts)
-    if (existsSync(configPath)) {
-      console.log("⚠️  seokit.config.js already exists, skipping...");
-    } else if (existsSync(tsConfigPath)) {
-      console.log("⚠️  seokit.config.ts already exists, skipping...");
-    } else {
+    if (!existsSync(configPath) && !existsSync(tsConfigPath)) {
       writeFileSync(configPath, generateConfigTemplateJS());
-      console.log("✓ Created seokit.config.js");
     }
 
-    // Determine templates directory based on framework
+    // Determine templates directory
     let templatesDir: string;
-    let templatesRelativePath: string;
-
     if (framework.type === "sveltekit") {
-      // SvelteKit: src/lib/seokit/templates
       templatesDir = join(projectRoot, "src/lib/seokit/templates");
-      templatesRelativePath = "src/lib/seokit/templates";
     } else {
-      // Other frameworks: templates/ in root
       templatesDir = join(projectRoot, "templates");
-      templatesRelativePath = "templates";
     }
 
     // Create templates directory
     if (!existsSync(templatesDir)) {
       mkdirSync(templatesDir, { recursive: true });
-      console.log(`✓ Created ${templatesRelativePath}/ directory`);
     }
 
-    // For SvelteKit, we copy all built-in templates
-    // For other frameworks, create a generic template
-    if (framework.type !== "sveltekit") {
-      const templateExt = "html";
-      const templatePath = join(templatesDir, `OgDefault.${templateExt}`);
-
-      if (existsSync(templatePath)) {
-        console.log(
-          `⚠️  ${templatesRelativePath}/OgDefault.${templateExt} already exists, skipping...`
-        );
-      } else {
-        const templateContent = generateGenericTemplate();
-        writeFileSync(templatePath, templateContent);
-        console.log(
-          `✓ Created ${templatesRelativePath}/OgDefault.${templateExt}`
-        );
-      }
-    }
-
-    // Copy all built-in templates for SvelteKit
+    // Create templates
     if (framework.type === "sveltekit") {
-      const availableTemplates = getAvailableTemplates();
-      console.log("\n📐 Copying built-in templates...");
-      for (const template of availableTemplates) {
-        const destPath = join(templatesDir, `${template}.svelte`);
-        if (!existsSync(destPath)) {
-          try {
-            const content = getTemplateContent(template);
-            writeFileSync(destPath, content);
-            console.log(
-              `  ✓ ${template}.svelte - ${getTemplateDescription(template)}`
-            );
-          } catch (error) {
-            console.log(`  ⚠️  Failed to copy ${template}.svelte`);
-          }
-        } else {
-          console.log(`  ⚠️  ${template}.svelte already exists, skipping...`);
-        }
+      const customTemplatePath = join(templatesDir, "custom.svelte");
+      if (!existsSync(customTemplatePath)) {
+        const content = getTemplateContent("default");
+        writeFileSync(customTemplatePath, content);
       }
-    }
 
-    // Create framework-specific endpoint
-    if (framework.type === "sveltekit") {
+      // Create template endpoint
       const endpointDir = join(projectRoot, "src/routes/api/seokit-html");
-      if (!existsSync(endpointDir)) {
-        mkdirSync(endpointDir, { recursive: true });
-      }
-
       const endpointPath = join(endpointDir, "+server.ts");
-      if (existsSync(endpointPath)) {
-        console.log("⚠️  Template Endpoint already exists, skipping...");
-      } else {
+      if (!existsSync(endpointPath)) {
+        mkdirSync(endpointDir, { recursive: true });
         writeFileSync(endpointPath, generateSvelteKitEndpoint());
-        console.log(
-          "✓ Created Template Endpoint at src/routes/api/seokit-html/+server.ts"
-        );
+      }
+    } else {
+      const templatePath = join(templatesDir, "OgDefault.html");
+      if (!existsSync(templatePath)) {
+        writeFileSync(templatePath, generateGenericTemplate());
       }
     }
 
@@ -359,44 +285,12 @@ export async function initCommand(): Promise<void> {
     // Install dependencies
     installDependencies(framework.type, projectRoot);
 
-    // Display success message
-    console.log("\n✨ SeoKit initialized successfully!\n");
+    // Success message
+    console.log("\n✨ SeoKit initialized\n");
     console.log("Next steps:");
-    console.log("  1. Update seokit.config.js with your site details");
-    console.log("  2. Start your dev server");
-    console.log("  3. Run: seokit dev");
-    console.log(
-      "\n💡 Tip: SeoKit includes Open Sans font by default - no font setup needed!"
-    );
-
-    if (framework.type === "sveltekit") {
-      console.log("\nFor SvelteKit, use the <SeoKit> component in your pages:");
-      console.log(
-        '  <SeoKit title="Page Title" description="..." ogProps={{ title: "..." }} />'
-      );
-      console.log("\n📐 Available templates:");
-      console.log(
-        "  Change the 'template' field in seokit.config.js to use different designs:"
-      );
-      const templates = getAvailableTemplates();
-      templates.forEach((template) => {
-        console.log(`  - '${template}' - ${getTemplateDescription(template)}`);
-      });
-      console.log(
-        `\n  All templates are in ${templatesRelativePath}/ - customize them as needed!`
-      );
-    } else if (framework.type === "unknown") {
-      console.log("\n⚠️  Manual setup required:");
-      console.log(
-        "  - Create a server endpoint that renders templates/OgDefault.html"
-      );
-      console.log("  - Return JSON: { html: string, css?: string }");
-      console.log("  - Update htmlSourceUrl in seokit.config.js");
-    }
-
-    console.log("\nDocumentation: https://github.com/tahayvr/seokit\n");
+    console.log("  1. Update seokit.config.js");
+    console.log("  2. Run: seokit dev\n");
   } catch (error) {
-    // Use the CLI error formatter for user-friendly error messages
     handleCliError(error);
   }
 }
