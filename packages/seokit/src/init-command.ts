@@ -218,7 +218,7 @@ function installDependencies(
         ? `yarn add --dev ${packages.join(" ")}`
         : `pnpm add -D ${packages.join(" ")}`;
 
-    execSync(installCmd, { cwd: projectRoot, stdio: "inherit" });
+    execSync(installCmd, { cwd: projectRoot, stdio: "ignore" });
   } catch (error) {
     console.error(
       `\nFailed to install. Run manually: ${packageManager} ${

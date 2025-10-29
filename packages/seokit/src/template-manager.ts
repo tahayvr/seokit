@@ -14,8 +14,8 @@ const __dirname = dirname(__filename);
  * Get the path to the built-in templates directory
  */
 export function getTemplatesDir(): string {
-  // Templates are in the package root, one level up from dist/src
-  return join(__dirname, "../../templates");
+  // Templates are in the package root, one level up from dist/
+  return join(__dirname, "../templates");
 }
 
 /**

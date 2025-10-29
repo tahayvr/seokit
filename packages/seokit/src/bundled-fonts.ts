@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
  * Get the path to the bundled fonts directory
  */
 export function getBundledFontsDir(): string {
-  // Fonts are in the package root, one level up from dist
+  // Fonts are in the package root, one level up from dist/
   return join(__dirname, "../fonts");
 }
 
