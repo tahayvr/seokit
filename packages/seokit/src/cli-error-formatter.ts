@@ -118,6 +118,18 @@ export function formatCliError(error: unknown): string {
     case ErrorCode.PORT_ACCESS_DENIED:
       return formatPortAccessDeniedError(seoKitError);
 
+    case ErrorCode.BROWSER_LAUNCH_ERROR:
+      return formatBrowserLaunchError(seoKitError);
+
+    case ErrorCode.PAGE_POOL_EXHAUSTED:
+      return formatPagePoolExhaustedError(seoKitError);
+
+    case ErrorCode.RENDER_ERROR:
+      return formatRenderError(seoKitError);
+
+    case ErrorCode.RESOURCE_LOAD_ERROR:
+      return formatResourceLoadError(seoKitError);
+
     default:
       return formatGenericError(seoKitError);
   }
@@ -293,6 +305,177 @@ function formatPortAccessDeniedError(error: SeoKitError): string {
       formatCode(`server: {
   port: 7357,  // ports above 1024 don't require admin
 }`)
+    ),
+  ].join("\n");
+}
+
+function formatBrowserLaunchError(error: SeoKitError): string {
+  const originalError = error.context?.originalError as string;
+
+  return [
+    formatErrorBox("❌ Browser Launch Failed", ""),
+    `Puppeteer failed to launch the Chromium browser.`,
+    "",
+    originalError ? `Error: ${colorize(originalError, "red")}` : "",
+    formatSection(
+      "Troubleshooting steps:",
+      formatSteps([
+        "Make sure Chromium dependencies are installed:",
+        "",
+        "  " + colorize("# Debian/Ubuntu", "gray"),
+        "  " +
+          colorize(
+            "apt-get install -y chromium chromium-sandbox libgbm1",
+            "cyan"
+          ),
+        "",
+        "  " + colorize("# Alpine", "gray"),
+        "  " +
+          colorize(
+            "apk add chromium nss freetype harfbuzz ca-certificates",
+            "cyan"
+          ),
+        "",
+        "If running in Docker, you may need to add --no-sandbox:",
+      ])
+    ),
+    formatSection(
+      "Docker configuration:",
+      formatCode(`puppeteer: {
+  launchArgs: ['--no-sandbox', '--disable-setuid-sandbox'],
+}`)
+    ),
+    formatSection(
+      "Other possible causes:",
+      formatSteps([
+        "Insufficient memory (requires at least 512MB)",
+        "Missing shared libraries (check system logs)",
+        "SELinux or AppArmor restrictions",
+        "Running in a restricted environment (CI/CD)",
+      ])
+    ),
+  ].join("\n");
+}
+
+function formatPagePoolExhaustedError(error: SeoKitError): string {
+  const poolSize = error.context?.poolSize as number;
+  const waitingRequests = error.context?.waitingRequests as number;
+
+  return [
+    formatErrorBox("❌ Page Pool Exhausted", ""),
+    `All ${colorize(
+      String(poolSize),
+      "cyan"
+    )} browser pages are currently in use.`,
+    waitingRequests > 0
+      ? `Currently ${colorize(
+          String(waitingRequests),
+          "yellow"
+        )} requests are waiting for a page.`
+      : "",
+    formatSection(
+      "To fix this:",
+      formatSteps(["Increase the page pool size in your seokit.config.ts:"])
+    ),
+    formatSection(
+      "Configuration example:",
+      formatCode(`puppeteer: {
+  poolSize: 4,  // increase from default of 2
+}`)
+    ),
+    formatSection(
+      "Other solutions:",
+      formatSteps([
+        "Optimize your template rendering to be faster",
+        "Implement request throttling or rate limiting",
+        "Check if templates are hanging or taking too long",
+        "Monitor memory usage (each page uses ~100-200MB)",
+      ])
+    ),
+    "",
+    colorize("Note:", "yellow") +
+      " Each page in the pool uses memory. Balance pool size with available RAM.",
+  ].join("\n");
+}
+
+function formatRenderError(error: SeoKitError): string {
+  const consoleErrors = error.context?.consoleErrors as string[] | undefined;
+
+  return [
+    formatErrorBox("❌ Render Error", ""),
+    error.message,
+    consoleErrors && consoleErrors.length > 0
+      ? [
+          "",
+          colorize("Browser console errors:", "bold"),
+          ...consoleErrors.map((err) => `  ${colorize("•", "red")} ${err}`),
+        ].join("\n")
+      : "",
+    formatSection(
+      "Common causes:",
+      formatSteps([
+        "JavaScript errors in your template",
+        "Invalid HTML structure",
+        "CSS that causes layout issues",
+        "Missing or broken resources (images, fonts)",
+        "Template taking too long to render",
+      ])
+    ),
+    formatSection(
+      "To debug:",
+      formatSteps([
+        "Check the browser console errors above",
+        "Test your template in a regular browser",
+        "Enable headless: false to see the browser window:",
+      ])
+    ),
+    formatSection(
+      "Debug configuration:",
+      formatCode(`puppeteer: {
+  headless: false,  // see the browser window
+  timeout: 30000,   // increase timeout if needed
+}`)
+    ),
+  ].join("\n");
+}
+
+function formatResourceLoadError(error: SeoKitError): string {
+  const failedResources = error.context?.failedResources as string[];
+
+  return [
+    formatErrorBox("❌ Resource Load Failed", ""),
+    `The following resources failed to load in your template:`,
+    "",
+    ...failedResources.map(
+      (url) => `  ${colorize("•", "red")} ${formatUrl(url)}`
+    ),
+    formatSection(
+      "Common causes:",
+      formatSteps([
+        "Image URLs are incorrect or unreachable",
+        "Resources require authentication",
+        "CORS issues with external resources",
+        "Network connectivity problems",
+        "Resources are behind a firewall",
+      ])
+    ),
+    formatSection(
+      "To fix this:",
+      formatSteps([
+        "Verify all resource URLs are correct and accessible",
+        "Use absolute URLs for external resources",
+        "Check that images exist and are publicly accessible",
+        "Test resource URLs in your browser",
+        "Consider hosting resources locally or on a CDN",
+      ])
+    ),
+    formatSection(
+      "For local development:",
+      formatSteps([
+        "Make sure your dev server is running",
+        "Use the full URL including protocol and port",
+        "Example: http://localhost:5173/images/logo.png",
+      ])
     ),
   ].join("\n");
 }
