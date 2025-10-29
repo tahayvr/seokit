@@ -9,7 +9,6 @@ export interface FontConfig {
 // Server configuration
 export interface ServerConfig {
   port?: number;
-  host?: string;
 }
 
 // Image generation configuration

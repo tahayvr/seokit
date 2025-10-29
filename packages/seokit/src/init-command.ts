@@ -48,7 +48,6 @@ const config = {
   // Image Engine server configuration
   server: {
     port: 7357,
-    host: "localhost",
   },
 
   // Image generation options

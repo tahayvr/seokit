@@ -16,7 +16,6 @@ import { getLogger } from "./logger.js";
 export interface ServerInstance {
   stop: () => Promise<void>;
   port: number;
-  host: string;
 }
 
 /**
@@ -273,7 +272,6 @@ export async function startServer(
 ): Promise<ServerInstance> {
   const app = createServer(config);
   const port = config.server?.port || 7357;
-  const host = config.server?.host || "localhost";
 
   return new Promise((resolve, reject) => {
     try {
@@ -281,14 +279,18 @@ export async function startServer(
         {
           fetch: app.fetch,
           port,
-          hostname: host,
+          hostname: "127.0.0.1",
         },
         (info: { address: string; port: number }) => {
+          // Always display as localhost for better UX (like other dev tools)
+          // Works regardless of whether we bind to 127.0.0.1, ::1, or 0.0.0.0
+          const displayHost = "localhost";
+
           console.log(`\n🚀 Image Engine started successfully!\n`);
-          console.log(`   Local:   http://${info.address}:${info.port}`);
-          console.log(`   Health:  http://${info.address}:${info.port}/health`);
+          console.log(`   Local:   http://${displayHost}:${info.port}`);
+          console.log(`   Health:  http://${displayHost}:${info.port}/health`);
           console.log(
-            `   Image:   http://${info.address}:${info.port}/og.png\n`
+            `   Image:   http://${displayHost}:${info.port}/og.png\n`
           );
 
           // Set up graceful shutdown handlers
@@ -321,7 +323,6 @@ export async function startServer(
               });
             },
             port: info.port,
-            host: info.address,
           });
         }
       );
