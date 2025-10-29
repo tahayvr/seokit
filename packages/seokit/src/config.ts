@@ -6,15 +6,15 @@ import type { SeoKitConfig } from "./types.js";
 import {
   createConfigMissingError,
   createConfigInvalidError,
-  createFontFileNotFoundError,
 } from "./errors.js";
 
 // Zod schema for configuration validation
-const FontConfigSchema = z.object({
-  name: z.string().min(1, "Font name is required"),
-  path: z.string().min(1, "Font path is required"),
-  weight: z.number().optional(),
-  style: z.enum(["normal", "italic"]).optional(),
+const PuppeteerConfigSchema = z.object({
+  headless: z.boolean().optional(),
+  timeout: z.number().int().positive().optional(),
+  poolSize: z.number().int().positive().min(1).max(10).optional(),
+  memoryLimit: z.number().int().positive().optional(),
+  launchArgs: z.array(z.string()).optional(),
 });
 
 const ServerConfigSchema = z.object({
@@ -38,10 +38,16 @@ const SeoKitConfigSchema = z.object({
   baseUrl: z.string().url("baseUrl must be a valid URL"),
   defaults: SeoKitDefaultsSchema,
   htmlSourceUrl: z.string().url("htmlSourceUrl must be a valid URL"),
-  fonts: z.array(FontConfigSchema),
   template: z.string().optional(),
   server: ServerConfigSchema.optional(),
   image: ImageConfigSchema.optional(),
+  cache: z
+    .object({
+      development: z.string().optional(),
+      production: z.string().optional(),
+    })
+    .optional(),
+  puppeteer: PuppeteerConfigSchema.optional(),
 });
 
 // Default values for optional configuration
@@ -54,6 +60,13 @@ const DEFAULT_IMAGE_CONFIG = {
   width: 1200,
   height: 630,
   format: "png" as const,
+};
+
+const DEFAULT_PUPPETEER_CONFIG = {
+  headless: true,
+  timeout: 10000,
+  poolSize: 2,
+  memoryLimit: 513,
 };
 
 /**
@@ -122,6 +135,10 @@ export async function loadConfig(configPath?: string): Promise<SeoKitConfig> {
         ...DEFAULT_IMAGE_CONFIG,
         ...validationResult.data.image,
       },
+      puppeteer: {
+        ...DEFAULT_PUPPETEER_CONFIG,
+        ...validationResult.data.puppeteer,
+      },
     };
 
     return config;
@@ -143,32 +160,10 @@ export async function loadConfig(configPath?: string): Promise<SeoKitConfig> {
 }
 
 /**
- * Validate font paths exist on the file system
- * @param config Configuration to validate
- */
-export function validateFontPaths(config: SeoKitConfig): void {
-  const missingFonts: Array<{ name: string; path: string }> = [];
-
-  for (const font of config.fonts) {
-    const fontPath = resolve(process.cwd(), font.path);
-    if (!existsSync(fontPath)) {
-      missingFonts.push({ name: font.name, path: font.path });
-    }
-  }
-
-  if (missingFonts.length > 0) {
-    throw createFontFileNotFoundError(missingFonts);
-  }
-}
-
-/**
  * Validate complete configuration including file system checks
  * @param config Configuration to validate
  */
 export function validateConfig(config: SeoKitConfig): void {
-  // Validate font paths exist
-  validateFontPaths(config);
-
   // Additional validation can be added here
   // For example: check if URLs are reachable, validate port ranges, etc.
 }
