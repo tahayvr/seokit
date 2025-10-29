@@ -15,9 +15,7 @@ import { getTemplateContent } from "./template-manager.js";
  * Generates the seokit.config.js template (works for both TS and JS projects)
  */
 function generateConfigTemplateJS(): string {
-  return `import { getBundledFontPath } from "seokit";
-
-/** @type {import('seokit').SeoKitConfig} */
+  return `/** @type {import('seokit').SeoKitConfig} */
 const config = {
   // Base URL for your production site
   baseUrl: "https://example.com",
@@ -36,16 +34,11 @@ const config = {
   // Options: 'custom' (your editable template), 'default', 'minimal', 'minimal-dark', 'card', 'split', 'retro'
   template: "custom",
 
-  // Font configuration
-  // Using bundled Open Sans font - to use custom fonts, replace with your own font files
-  fonts: [
-    {
-      name: "Open Sans",
-      path: getBundledFontPath("OpenSans-Regular.ttf"),
-      weight: 400,
-      style: "normal",
-    },
-  ],
+  // Puppeteer configuration for browser-based rendering
+  puppeteer: {
+    headless: true,
+    poolSize: 2,
+  },
 
   // Image Engine server configuration
   server: {
