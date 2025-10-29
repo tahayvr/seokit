@@ -24,7 +24,7 @@ const config = {
 
   // Site-wide defaults
   defaults: {
-    siteName: "test si",
+    siteName: "My Site",
     twitterHandle: "@mysite",
     locale: "en_US",
   },
