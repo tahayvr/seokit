@@ -16,35 +16,6 @@ import {
 } from "./template-manager.js";
 
 /**
- * Detects if the project uses TypeScript
- */
-function detectTypeScript(projectRoot: string): boolean {
-  // Check for tsconfig.json
-  if (existsSync(join(projectRoot, "tsconfig.json"))) {
-    return true;
-  }
-
-  // Check package.json for TypeScript dependency
-  const packageJsonPath = join(projectRoot, "package.json");
-  if (existsSync(packageJsonPath)) {
-    try {
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
-      const deps = {
-        ...packageJson.dependencies,
-        ...packageJson.devDependencies,
-      };
-      if (deps.typescript) {
-        return true;
-      }
-    } catch (error) {
-      // Ignore parse errors
-    }
-  }
-
-  return false;
-}
-
-/**
  * Generates the seokit.config.js template (works for both TS and JS projects)
  */
 function generateConfigTemplateJS(): string {
@@ -96,126 +67,6 @@ const config = {
 };
 
 export default config;
-`;
-}
-
-/**
- * Generates the default OG template for SvelteKit (TypeScript)
- */
-function generateSvelteKitTemplateTS(): string {
-  return `<script lang="ts">
-  export let title: string = 'Untitled';
-  export let description: string = '';
-  export let siteName: string = '';
-</script>
-
-<div class="og-container">
-  <div class="content">
-    {#if siteName}
-      <div class="site-name">{siteName}</div>
-    {/if}
-    <h1 class="title">{title}</h1>
-    {#if description}
-      <p class="description">{description}</p>
-    {/if}
-  </div>
-</div>
-
-<style>
-  .og-container {
-    width: 1200px;
-    height: 630px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 80px;
-    box-sizing: border-box;
-  }
-
-  .content {
-    color: white;
-  }
-
-  .site-name {
-    font-size: 24px;
-    opacity: 0.9;
-    margin-bottom: 20px;
-  }
-
-  .title {
-    font-size: 64px;
-    font-weight: bold;
-    margin: 0 0 20px 0;
-    line-height: 1.2;
-  }
-
-  .description {
-    font-size: 32px;
-    opacity: 0.9;
-    margin: 0;
-  }
-</style>
-`;
-}
-
-/**
- * Generates the default OG template for SvelteKit (JavaScript)
- */
-function generateSvelteKitTemplateJS(): string {
-  return `<script>
-  export let title = 'Untitled';
-  export let description = '';
-  export let siteName = '';
-</script>
-
-<div class="og-container">
-  <div class="content">
-    {#if siteName}
-      <div class="site-name">{siteName}</div>
-    {/if}
-    <h1 class="title">{title}</h1>
-    {#if description}
-      <p class="description">{description}</p>
-    {/if}
-  </div>
-</div>
-
-<style>
-  .og-container {
-    width: 1200px;
-    height: 630px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 80px;
-    box-sizing: border-box;
-  }
-
-  .content {
-    color: white;
-  }
-
-  .site-name {
-    font-size: 24px;
-    opacity: 0.9;
-    margin-bottom: 20px;
-  }
-
-  .title {
-    font-size: 64px;
-    font-weight: bold;
-    margin: 0 0 20px 0;
-    line-height: 1.2;
-  }
-
-  .description {
-    font-size: 32px;
-    opacity: 0.9;
-    margin: 0;
-  }
-</style>
 `;
 }
 
@@ -423,9 +274,6 @@ export async function initCommand(): Promise<void> {
       console.log("✓ Created seokit.config.js");
     }
 
-    // Detect TypeScript for template generation
-    const useTypeScript = detectTypeScript(projectRoot);
-
     // Determine templates directory based on framework
     let templatesDir: string;
     let templatesRelativePath: string;
@@ -446,40 +294,29 @@ export async function initCommand(): Promise<void> {
       console.log(`✓ Created ${templatesRelativePath}/ directory`);
     }
 
-    // Create framework-specific template
-    const templateExt = framework.type === "sveltekit" ? "svelte" : "html";
-    const templatePath = join(templatesDir, `OgDefault.${templateExt}`);
+    // For SvelteKit, we copy all built-in templates
+    // For other frameworks, create a generic template
+    if (framework.type !== "sveltekit") {
+      const templateExt = "html";
+      const templatePath = join(templatesDir, `OgDefault.${templateExt}`);
 
-    if (existsSync(templatePath)) {
-      console.log(
-        `⚠️  ${templatesRelativePath}/OgDefault.${templateExt} already exists, skipping...`
-      );
-    } else {
-      let templateContent: string;
-      if (framework.type === "sveltekit") {
-        // Use the built-in 'default' template
-        try {
-          templateContent = getTemplateContent("default");
-          console.log("Using built-in 'default' template");
-        } catch (error) {
-          // Fallback to generated template if built-in not found
-          templateContent = useTypeScript
-            ? generateSvelteKitTemplateTS()
-            : generateSvelteKitTemplateJS();
-        }
+      if (existsSync(templatePath)) {
+        console.log(
+          `⚠️  ${templatesRelativePath}/OgDefault.${templateExt} already exists, skipping...`
+        );
       } else {
-        templateContent = generateGenericTemplate();
+        const templateContent = generateGenericTemplate();
+        writeFileSync(templatePath, templateContent);
+        console.log(
+          `✓ Created ${templatesRelativePath}/OgDefault.${templateExt}`
+        );
       }
-      writeFileSync(templatePath, templateContent);
-      console.log(
-        `✓ Created ${templatesRelativePath}/OgDefault.${templateExt}`
-      );
     }
 
-    // Copy all built-in templates for easy access
+    // Copy all built-in templates for SvelteKit
     if (framework.type === "sveltekit") {
       const availableTemplates = getAvailableTemplates();
-      console.log("\nCopying built-in templates...");
+      console.log("\n📐 Copying built-in templates...");
       for (const template of availableTemplates) {
         const destPath = join(templatesDir, `${template}.svelte`);
         if (!existsSync(destPath)) {
@@ -492,6 +329,8 @@ export async function initCommand(): Promise<void> {
           } catch (error) {
             console.log(`  ⚠️  Failed to copy ${template}.svelte`);
           }
+        } else {
+          console.log(`  ⚠️  ${template}.svelte already exists, skipping...`);
         }
       }
     }
